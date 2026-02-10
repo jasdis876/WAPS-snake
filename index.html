@@ -14,7 +14,7 @@
     html,body{
       height:100%;
       overflow:hidden;
-      background:#F0F8FF; /* Alice Blue background */
+      background:#F0F8FF;
       font-family:'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
       color:#2C5F9E;
       touch-action:none;
@@ -24,8 +24,8 @@
       --bg:#F0F8FF;
       --panel:#FFFFFF;
       --panel2:#E6F2FF;
-      --primary:#2C5F9E;      /* Primary blue */
-      --accent:#4A90E2;       /* Bright accent blue */
+      --primary:#2C5F9E;
+      --accent:#4A90E2;
       --border:rgba(44,95,158,.2);
       --soft-shadow:rgba(74,144,226,.15);
     }
@@ -117,23 +117,6 @@
       border:2px solid var(--border);
       border-radius:8px;
       box-shadow:0 4px 12px rgba(44,95,158,.1);
-    }
-
-    #landscapeWarning{
-      display:none;
-      position:absolute;
-      inset:0;
-      background:rgba(240,248,255,.95);
-      color:var(--primary);
-      justify-content:center;
-      align-items:center;
-      text-align:center;
-      padding:20px;
-      font-size:1.2rem;
-      z-index:20;
-      pointer-events:auto;
-      font-weight:600;
-      border-radius:8px;
     }
 
     #overlay{
@@ -250,8 +233,6 @@
     <div id="canvasWrapper">
       <canvas id="gameCanvas"></canvas>
 
-      <div id="landscapeWarning">📱 Please rotate to portrait mode to play!</div>
-
       <div id="overlay">
         <div id="overlayText">GAME OVER</div>
         <div id="overlaySub">Tap to Restart</div>
@@ -291,8 +272,6 @@
       const overlaySub = document.getElementById("overlaySub");
       const overlayTiny = document.getElementById("overlayTiny");
 
-      const landscapeWarning = document.getElementById("landscapeWarning");
-
       const upBtn = document.getElementById("upBtn");
       const downBtn = document.getElementById("downBtn");
       const leftBtn = document.getElementById("leftBtn");
@@ -317,17 +296,13 @@
       let highScore = 0;
       let gameOver = false;
 
-      const BASE_SPEED = 8; // Slower, more relaxed pace
-      const SPEED_INC = 0.3; // Smaller speed increments
-      const MAX_SPEED  = 15; // Lower max speed for relaxation
+      const BASE_SPEED = 8;
+      const SPEED_INC = 0.3;
+      const MAX_SPEED  = 15;
       let speed = BASE_SPEED;
 
       let lastT = 0;
       let acc = 0;
-
-      function isLandscape(){
-        return window.innerWidth > window.innerHeight;
-      }
 
       function showOverlay(on, title, sub){
         overlay.style.display = on ? "flex" : "none";
@@ -354,13 +329,13 @@
       function resize(){
         const wrap = document.getElementById("canvasWrapper");
 
-        const land = isLandscape();
-        landscapeWarning.style.display = land ? "flex" : "none";
-        canvas.style.display = land ? "none" : "block";
-
-        const usable = Math.min(wrap.clientWidth, wrap.clientHeight);
-        const cssSize = Math.max(240, Math.floor(usable));
-        const cells = Math.max(15, Math.floor(cssSize / CELL));
+        const usableW = wrap.clientWidth;
+        const usableH = wrap.clientHeight;
+        const cellsW = Math.max(15, Math.floor(usableW / CELL));
+        const cellsH = Math.max(15, Math.floor(usableH / CELL));
+        
+        // Use the smaller dimension to keep the game square
+        const cells = Math.min(cellsW, cellsH);
 
         gridW = cells;
         gridH = cells;
@@ -374,7 +349,12 @@
         ctx.setTransform(1,0,0,1,0,0);
         ctx.scale(dpr,dpr);
 
-        reset();
+        if (snake.length === 0) {
+          reset();
+        } else {
+          // Just redraw if we're resizing during gameplay
+          draw();
+        }
       }
 
       function initSnake(){
@@ -447,7 +427,6 @@
 
         showOverlay(true, "GAME OVER", "Your score: " + score + "\nTap to try again");
 
-        // Calming, supportive messages
         const messages = [
           "You're doing amazing. Take a deep breath.",
           "Every small victory counts. You've got this!",
@@ -501,11 +480,9 @@
       }
 
       function draw(){
-        // Draw background
         ctx.fillStyle = BG_COLOR;
         ctx.fillRect(0,0,gridW*CELL, gridH*CELL);
         
-        // Draw subtle grid
         ctx.strokeStyle = "rgba(44,95,158,0.05)";
         ctx.lineWidth = 1;
         for (let x = 0; x <= gridW; x++) {
@@ -521,7 +498,6 @@
           ctx.stroke();
         }
 
-        // Draw food with soft glow
         ctx.save();
         ctx.fillStyle = FOOD_COLOR;
         ctx.shadowColor = FOOD_COLOR;
@@ -533,7 +509,6 @@
         ctx.fill();
         ctx.restore();
 
-        // Draw snake
         ctx.save();
         ctx.fillStyle = SNAKE_COLOR;
         ctx.shadowColor = "rgba(44,95,158,0.3)";
@@ -544,7 +519,6 @@
           const centerX = s.x * CELL + CELL/2;
           const centerY = s.y * CELL + CELL/2;
           
-          // Rounder corners for a softer look
           ctx.beginPath();
           ctx.arc(centerX, centerY, radius, 0, Math.PI*2);
           ctx.fill();
@@ -604,20 +578,13 @@
         clearTimeout(rTimer);
         rTimer = setTimeout(resize, 80);
       });
-      window.addEventListener("orientationchange", () => setTimeout(resize, 120));
 
       loadHighScore();
       resize();
       reset();
-      requestAnimationFrame(loop);
       
       function loop(t){
         requestAnimationFrame(loop);
-
-        if (isLandscape()){
-          draw();
-          return;
-        }
 
         if (!lastT) lastT = t;
         let dt = (t - lastT)/1000;
@@ -636,6 +603,8 @@
 
         draw();
       }
+      
+      requestAnimationFrame(loop);
     })();
   </script>
 </body>
